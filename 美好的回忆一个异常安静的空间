@@ -1,0 +1,263 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+local lp = LocalPlayer
+
+-- 1. Dọn dẹp script cũ
+if CoreGui:FindFirstChild("CharaFloweyESP_Final_X") then CoreGui.CharaFloweyESP_Final_X:Destroy() end
+
+-- 2. ScreenGui
+local gui = Instance.new("ScreenGui", CoreGui)
+gui.Name = "CharaFloweyESP_Final_X"
+gui.ResetOnSpawn = false
+
+-- 3. Main Frame
+local main = Instance.new("Frame", gui)
+main.Size = UDim2.new(0, 520, 0, 180)
+main.Position = UDim2.new(0.5, -260, 0.7, -90)
+main.BackgroundColor3 = Color3.new(0,0,0)
+main.BorderColor3 = Color3.new(1,1,1)
+main.BorderSizePixel = 4
+main.Active, main.Draggable = true, true
+
+-- 4. Sound Setup (GIỮ NGUYÊN TOÀN BỘ ID)
+local function playTalkSound(isEvil)
+    local s = Instance.new("Sound", CoreGui)
+    s.SoundId = isEvil and "rbxassetid://929615155" or "rbxassetid://929615246"
+    s.Volume = 0.6
+    s:Play()
+    s.Ended:Connect(function() s:Destroy() end)
+end
+
+local uiClick = Instance.new("Sound", gui)
+uiClick.SoundId = "rbxassetid://8211321592"
+
+local clickSoundAura = Instance.new("Sound", gui)
+clickSoundAura.SoundId = "rbxassetid://87524793267615"
+
+local spawnSound = Instance.new("Sound", gui)
+spawnSound.SoundId = "rbxassetid://87561416369452"
+
+local deathSound = Instance.new("Sound", gui)
+deathSound.SoundId = "rbxassetid://135209094013497"
+
+-- 5. Close Button
+local closeBtn = Instance.new("TextButton", main)
+closeBtn.Size = UDim2.new(0, 35, 0, 35)
+closeBtn.Position = UDim2.new(1, -40, 0, 5)
+closeBtn.BackgroundTransparency = 1
+closeBtn.Text = "X"
+closeBtn.TextColor3 = Color3.new(1, 1, 1)
+closeBtn.Font = Enum.Font.Arcade
+closeBtn.TextSize = 30
+closeBtn.MouseButton1Click:Connect(function() uiClick:Play() gui:Destroy() end)
+
+-- 6. Soul Image (Nhấp nhô)
+local soul = Instance.new("ImageLabel", main)
+soul.Size = UDim2.new(0, 50, 0, 50)
+soul.Position = UDim2.new(0, 25, 0, 25)
+soul.BackgroundTransparency = 1
+soul.Image = "rbxassetid://114390076435044"
+
+task.spawn(function()
+    while soul and soul.Parent do
+        soul:TweenPosition(soul.Position + UDim2.new(0,0,0,-4), "InOut", "Sine", 0.6, true)
+        task.wait(0.6)
+        soul:TweenPosition(soul.Position + UDim2.new(0,0,0,4), "InOut", "Sine", 0.6, true)
+        task.wait(0.6)
+    end
+end)
+
+-- 7. Text Label & Shake Effect
+local statusText = Instance.new("TextLabel", main)
+statusText.Size = UDim2.new(0.8, 0, 0.35, 0)
+statusText.Position = UDim2.new(0, 90, 0, 20)
+statusText.BackgroundTransparency = 1
+statusText.TextColor3 = Color3.new(1,1,1)
+statusText.Font = Enum.Font.Arcade
+statusText.TextSize = 18
+statusText.TextXAlignment = Enum.TextXAlignment.Left
+statusText.TextWrapped = true
+
+local isShaking = false
+task.spawn(function()
+    while task.wait(0.02) do
+        statusText.Position = isShaking and UDim2.new(0, 90 + math.random(-2, 2), 0, 20 + math.random(-2, 2)) or UDim2.new(0, 90, 0, 20)
+    end
+end)
+
+-- 8. Buttons (Nằm ngang - Ẩn lúc đầu)
+local EspActive = false
+local espBtn = Instance.new("TextButton", main)
+espBtn.Size = UDim2.new(0, 220, 0, 45)
+espBtn.Position = UDim2.new(0, 25, 0.65, 0)
+espBtn.BackgroundColor3 = Color3.new(0,0,0)
+espBtn.BorderColor3 = Color3.new(1,1,1)
+espBtn.BorderSizePixel = 3
+espBtn.Text = "PLAYER ESP"
+espBtn.TextColor3 = Color3.new(1,1,1)
+espBtn.Font = Enum.Font.Arcade
+espBtn.TextSize = 22
+espBtn.Visible = false -- Ẩn
+
+local DeterminationActive = false
+local deterBtn = Instance.new("TextButton", main)
+deterBtn.Size = UDim2.new(0, 220, 0, 45)
+deterBtn.Position = UDim2.new(1, -245, 0.65, 0)
+deterBtn.BackgroundColor3 = Color3.new(0,0,0)
+deterBtn.BorderColor3 = Color3.new(1,1,1)
+deterBtn.BorderSizePixel = 3
+deterBtn.Text = "DETERMINATION"
+deterBtn.TextColor3 = Color3.new(1,1,1)
+deterBtn.Font = Enum.Font.Arcade
+deterBtn.TextSize = 22
+deterBtn.Visible = false -- Ẩn
+
+-- 9. Logic Typewriter & Hiện Nút
+local function typeWrite(txt, evilMode, isIntro)
+    statusText.Text = ""
+    isShaking = evilMode
+    statusText.TextColor3 = evilMode and Color3.new(1, 0, 0) or Color3.new(1, 1, 1)
+    for i = 1, #txt do
+        statusText.Text = string.sub(txt, 1, i)
+        playTalkSound(evilMode)
+        task.wait(evilMode and 0.05 or 0.03)
+    end
+    if isIntro then 
+        task.wait(0.2)
+        espBtn.Visible = true
+        deterBtn.Visible = true
+    end
+end
+
+espBtn.MouseButton1Click:Connect(function()
+    uiClick:Play()
+    EspActive = not EspActive
+    espBtn.TextColor3 = EspActive and Color3.new(1, 1, 0) or Color3.new(1, 1, 1) -- Màu vàng khi bật
+    typeWrite(EspActive and "* No one can hide." or "* You are no longer just a player.", EspActive)
+end)
+
+deterBtn.MouseButton1Click:Connect(function()
+    clickSoundAura:Play()
+    DeterminationActive = not DeterminationActive
+    deterBtn.TextColor3 = DeterminationActive and Color3.new(1, 1, 0) or Color3.new(1, 1, 1) -- Màu vàng khi bật
+    if DeterminationActive then
+        deterBtn.Text = "[ AWAKENED ]"
+        soul.ImageColor3 = Color3.fromRGB(255, 0, 0)
+        typeWrite("* Determination surges through your veins.", true)
+    else
+        deterBtn.Text = "DETERMINATION"
+        soul.ImageColor3 = Color3.new(1,1,1)
+        typeWrite("* The determination fades away.", false)
+    end
+end)
+
+-- 10. ESP CORE (GIỮ NGUYÊN MẪU)
+local function add_esp(p)
+    if p == LocalPlayer then return end
+    local function apply(char)
+        local highlight = Instance.new("Highlight")
+        local bill = Instance.new("BillboardGui")
+        bill.Size, bill.AlwaysOnTop, bill.StudsOffset = UDim2.new(0, 100, 0, 40), true, Vector3.new(0, 3, 0)
+        local lab = Instance.new("TextLabel", bill)
+        lab.Size, lab.BackgroundTransparency, lab.Font, lab.TextSize, lab.TextStrokeTransparency = UDim2.new(1, 0, 1, 0), 1, Enum.Font.SourceSansBold, 14, 0
+        local render
+        render = RunService.RenderStepped:Connect(function()
+            if not char.Parent or not gui.Parent then highlight:Destroy(); bill:Destroy(); render:Disconnect(); return end
+            local root = char:FindFirstChild("HumanoidRootPart")
+            if EspActive and root and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+                highlight.Parent = char
+                bill.Parent = char:FindFirstChild("Head") or root
+                local tColor = p.TeamColor and p.TeamColor.Color or Color3.new(1, 1, 1)
+                highlight.FillColor, lab.TextColor3 = tColor, tColor
+                lab.Text = p.Name .. "\n" .. math.floor((lp.Character.HumanoidRootPart.Position - root.Position).Magnitude) .. "m"
+                highlight.Enabled, bill.Enabled = true, true
+            else
+                highlight.Enabled, bill.Enabled = false, false
+            end
+        end)
+    end
+    if p.Character then apply(p.Character) end
+    p.CharacterAdded:Connect(apply)
+end
+for _, v in pairs(Players:GetPlayers()) do add_esp(v) end
+Players.PlayerAdded:Connect(add_esp)
+
+-- 11. SOUL AURA & KILL LOGIC (GIỮ NGUYÊN TOÀN BỘ)
+local soulScale, Range = 0.012, 11
+local function CreatePart(meshId, scaleValue)
+    local p = Instance.new("Part", workspace)
+    p.Anchored, p.CanCollide = true, false
+    p.Size, p.Material, p.Color, p.Transparency = Vector3.new(0.1, 0.1, 0.1), Enum.Material.Neon, Color3.fromRGB(255, 0, 0), 1
+    if meshId then
+        local m = Instance.new("SpecialMesh", p)
+        m.MeshType, m.MeshId, m.Scale = Enum.MeshType.FileMesh, "rbxassetid://" .. tostring(meshId), Vector3.new(scaleValue, scaleValue, scaleValue)
+    end
+    return p
+end
+
+local InnerCircle = CreatePart()
+InnerCircle.Shape, InnerCircle.Material, InnerCircle.Color = Enum.PartType.Cylinder, Enum.Material.ForceField, Color3.fromRGB(255, 50, 50)
+InnerCircle.Size = Vector3.new(0.08, Range * 2, Range * 2)
+local OuterRing = CreatePart()
+OuterRing.Shape, OuterRing.Material, OuterRing.Color = Enum.PartType.Cylinder, Enum.Material.Neon, Color3.fromRGB(255, 0, 0)
+OuterRing.Size = Vector3.new(0.04, (Range * 2) + 0.15, (Range * 2) + 0.15)
+local SoulBase = CreatePart(18142689519, soulScale)
+local SoulLeft = CreatePart(18142935889, soulScale)
+local SoulRight = CreatePart(18142930616, soulScale)
+
+local hasPlayedSpawnSound, hasPlayedDeathSound, isFirstLoad = false, true, true
+
+RunService.RenderStepped:Connect(function()
+    local char = lp.Character
+    local root = char and char:FindFirstChild("HumanoidRootPart")
+    local hum = char and char:FindFirstChild("Humanoid")
+    if root and hum and hum.Health > 0 then
+        isFirstLoad, hasPlayedDeathSound = false, false
+        local pos = root.CFrame * CFrame.Angles(0, 0, math.rad(90)) + Vector3.new(0, -2.85, 0)
+        InnerCircle.CFrame, OuterRing.CFrame = pos, pos
+        SoulBase.CFrame = root.CFrame * CFrame.new(0, 3.8, 0) * CFrame.Angles(0, math.rad(180), 0)
+        InnerCircle.Transparency = DeterminationActive and 0.8 or 1
+        OuterRing.Transparency = DeterminationActive and 0.2 or 1
+        SoulBase.Transparency = DeterminationActive and 0 or 1
+        if DeterminationActive and not hasPlayedSpawnSound then spawnSound:Play() hasPlayedSpawnSound = true
+        elseif not DeterminationActive then hasPlayedSpawnSound = false end
+        if DeterminationActive then
+            local tool = char:FindFirstChildOfClass("Tool")
+            if tool then
+                for _, enemy in pairs(Players:GetPlayers()) do
+                    if enemy ~= lp and enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart") then
+                        if (root.Position - enemy.Character.HumanoidRootPart.Position).Magnitude <= Range then
+                            tool:Activate()
+                            local h = tool:FindFirstChild("Handle") or tool:FindFirstChildOfClass("Part")
+                            if h then firetouchinterest(enemy.Character.HumanoidRootPart, h, 0) firetouchinterest(enemy.Character.HumanoidRootPart, h, 1) end
+                        end
+                    end
+                end
+            end
+        end
+    else
+        InnerCircle.Transparency, OuterRing.Transparency, SoulBase.Transparency = 1, 1, 1
+        if not hasPlayedDeathSound and not isFirstLoad then
+            deathSound:Play()
+            hasPlayedDeathSound, hasPlayedSpawnSound = true, false 
+            local lastPos = SoulBase.CFrame
+            SoulLeft.CFrame, SoulRight.CFrame = lastPos * CFrame.Angles(0, math.rad(180), 0), lastPos * CFrame.Angles(0, math.rad(180), 0)
+            SoulLeft.Transparency, SoulRight.Transparency = 0, 0
+            task.spawn(function()
+                task.wait(0.5)
+                for i = 1, 25 do
+                    local move = i * 0.04
+                    SoulLeft.CFrame = lastPos * CFrame.new(move, -move*0.2, 0) * CFrame.Angles(0, math.rad(180), 0) * CFrame.Angles(0, 0, math.rad(i*1.5))
+                    SoulRight.CFrame = lastPos * CFrame.new(-move, -move*0.2, 0) * CFrame.Angles(0, math.rad(180), 0) * CFrame.Angles(0, 0, math.rad(-i*1.5))
+                    if i > 10 then SoulLeft.Transparency = (i-10)/15 SoulRight.Transparency = (i-10)/15 end
+                    task.wait()
+                end
+            end)
+        end
+    end
+end)
+
+-- 12. KHỞI CHẠY (Introduction)
+typeWrite("* Greetings, fallen human. This script was made by 美好的回忆一个异常安静的空间.", false, true)
