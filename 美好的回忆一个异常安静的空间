@@ -65,12 +65,27 @@ statusText.Size = UDim2.new(0, 420, 0, 100); statusText.Position = UDim2.new(0, 
 statusText.TextColor3 = Color3.new(1,1,1); statusText.Font = Enum.Font.Arcade; statusText.TextSize = 22
 statusText.TextXAlignment = Enum.TextXAlignment.Left; statusText.TextYAlignment = Enum.TextYAlignment.Top; statusText.TextWrapped = true
 
--- 5. Cấu hình Hitbox & Biến
+-- 5. Cấu hình Hitbox & Hiệu ứng Rung
 local EspActive = false
 _G.DeterActive = false
 local currentTalkId = 0
-local innerRange = 7 -- Vòng trong đậm (Kill cực mạnh)
-local outerRange = 12 -- Tổng cộng 12 studs (Vòng ngoài 5 studs nhạt)
+local innerRange = 7
+local outerRange = 12
+local shakeConnection = nil
+
+local function stopShake()
+    if shakeConnection then shakeConnection:Disconnect(); shakeConnection = nil end
+    statusText.Position = UDim2.new(0, 155, 0.5, -65) -- Reset vị trí
+end
+
+local function startShake()
+    stopShake()
+    shakeConnection = RunService.RenderStepped:Connect(function()
+        local ox = math.random(-2, 2)
+        local oy = math.random(-2, 2)
+        statusText.Position = UDim2.new(0, 155 + ox, 0.5, -65 + oy)
+    end)
+end
 
 local function CreateUTButton(name, pos, checkVarFunc)
     local btn = Instance.new("TextButton", main)
@@ -92,9 +107,14 @@ local deterBtn = CreateUTButton("DETERMINATION", UDim2.new(0, 360, 0.7, 0), func
 local function typeWrite(txt, evilMode, showButtons)
     currentTalkId = currentTalkId + 1
     local myId = currentTalkId
+    
+    stopShake() -- Dừng mọi hiệu ứng rung trước đó
     statusText.Text = ""
     statusText.TextColor3 = evilMode and Color3.new(1, 0, 0) or Color3.new(1, 1, 1)
     portrait.Image = evilMode and "rbxthumb://type=Asset&id=90345918387121&w=420&h=420" or "rbxthumb://type=Asset&id=102826797353578&w=420&h=420"
+    
+    if evilMode then startShake() end -- Chỉ rung khi là chữ đỏ (evil mode)
+
     for i = 1, #txt do
         if myId ~= currentTalkId then return end
         statusText.Text = string.sub(txt, 1, i)
@@ -117,7 +137,7 @@ deterBtn.MouseButton1Click:Connect(function()
     else typeWrite("* The determination fades away.", false) end
 end)
 
--- 6. ESP (Giữ nguyên)
+-- 6. ESP 
 local function add_esp(p)
     if p == lp then return end
     local function apply(char)
@@ -142,7 +162,7 @@ local function add_esp(p)
 end
 for _, v in pairs(Players:GetPlayers()) do add_esp(v) end; Players.PlayerAdded:Connect(add_esp)
 
--- 7. Visual & Kill Aura (Hitbox chuẩn 12 studs chia 2 vùng)
+-- 7. Visual & Kill Aura
 local function CreateAuraPart(color, range)
     local p = Instance.new("Part", workspace); p.Anchored, p.CanCollide = true, false; p.Transparency = 1
     p.Shape = "Cylinder"; p.Material = "ForceField"; p.Color = color
@@ -177,10 +197,10 @@ RunService.RenderStepped:Connect(function()
                 for _, enemy in pairs(Players:GetPlayers()) do
                     if enemy ~= lp and enemy.Character and enemy.Character:FindFirstChild("HumanoidRootPart") then
                         local dist = (root.Position - enemy.Character.HumanoidRootPart.Position).Magnitude
-                        if dist <= innerRange then -- VÙNG TRONG (7 Studs): Dmg mạnh
+                        if dist <= innerRange then
                             tool:Activate()
                             for i = 1, 15 do firetouchinterest(enemy.Character.HumanoidRootPart, h, 0); firetouchinterest(enemy.Character.HumanoidRootPart, h, 1) end
-                        elseif dist <= outerRange then -- VÙNG NGOÀI (5 Studs tiếp theo): Dmg yếu
+                        elseif dist <= outerRange then
                             tool:Activate()
                             firetouchinterest(enemy.Character.HumanoidRootPart, h, 0); firetouchinterest(enemy.Character.HumanoidRootPart, h, 1)
                         end
@@ -194,7 +214,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 8. Khởi chạy (GIỮ NGUYÊN)
+-- 8. Khởi chạy
 task.spawn(function()
     typeWrite("* Greetings, fallen human. This script was made by 美好的回忆一个异常安静的空间.", false)
     task.wait(1.5)
@@ -202,3 +222,4 @@ task.spawn(function()
     task.wait(1.8)
     typeWrite("* You are no longer just a player.", false, true)
 end)
+
