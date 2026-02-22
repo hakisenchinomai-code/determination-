@@ -183,7 +183,9 @@ RunService.RenderStepped:Connect(function()
         if isFirstLoad or hasPlayedDeathSound then saveSound:Play(); isFirstLoad, hasPlayedDeathSound = false, false end
         local posBase = root.CFrame * CFrame.Angles(0, 0, math.rad(90)) + Vector3.new(0, -2.85, 0)
         InnerCircle.CFrame, OuterRing.CFrame = posBase, posBase
-        SoulBase.CFrame = root.CFrame * CFrame.new(0, 3.8 + math.sin(tick()*3)*0.4, 0) * CFrame.Angles(0, math.rad(180), 0)
+        
+        -- CHỈNH SỬA TẠI ĐÂY: Di chuyển Soul từ trên đầu xuống trước ngực
+        SoulBase.CFrame = root.CFrame * CFrame.new(0, 0.5 + math.sin(tick()*3)*0.3, -0.8) * CFrame.Angles(0, math.rad(180), 0)
         
         InnerCircle.Transparency = _G.DeterActive and 0.4 or 1
         OuterRing.Transparency = _G.DeterActive and 0.8 or 1
