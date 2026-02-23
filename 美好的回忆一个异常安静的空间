@@ -5,17 +5,123 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local lp = LocalPlayer
 
--- 1. Dọn dẹp script cũ
 if CoreGui:FindFirstChild("Undertale_Rework_UI") then
     CoreGui.Undertale_Rework_UI:Destroy()
 end
 
--- 2. ScreenGui chính
 local gui = Instance.new("ScreenGui", CoreGui)
 gui.Name = "Undertale_Rework_UI"
 gui.ResetOnSpawn = false
+gui.IgnoreGuiInset = true 
 
--- 3. Sound Setup
+local function flashRed()
+    local flash = Instance.new("Frame", gui)
+    flash.Size = UDim2.new(1, 0, 1, 0)
+    flash.BackgroundColor3 = Color3.new(1, 0, 0)
+    flash.BackgroundTransparency = 0.3
+    flash.ZIndex = 100
+    TweenService:Create(flash, TweenInfo.new(0.4), {BackgroundTransparency = 1}):Play()
+    task.delay(0.4, function() flash:Destroy() end)
+end
+
+local charaGui = Instance.new("Frame", gui)
+charaGui.Size = UDim2.new(1, 0, 1, 0)
+charaGui.BackgroundTransparency = 1
+charaGui.Visible = false
+
+local function createCorner(pos, anchor, rot)
+    local frame = Instance.new("Frame", charaGui)
+    frame.Size = UDim2.new(0.5, 0, 0.5, 0)
+    frame.Position = pos
+    frame.AnchorPoint = anchor
+    frame.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    frame.BackgroundTransparency = 0.85
+    frame.BorderSizePixel = 0
+    frame.ZIndex = 5
+    local grad = Instance.new("UIGradient", frame)
+    grad.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(1, Color3.new(0, 0, 0))}
+    grad.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(1, 1)}
+    grad.Rotation = rot
+    return frame
+end
+
+local corners = {
+    createCorner(UDim2.new(0,0,0,0), Vector2.new(0,0), 45),
+    createCorner(UDim2.new(1,0,0,0), Vector2.new(1,0), 135),
+    createCorner(UDim2.new(0,0,1,0), Vector2.new(0,1), -45),
+    createCorner(UDim2.new(1,0,1,0), Vector2.new(1,1), -135),
+}
+
+task.spawn(function()
+    while true do
+        if charaGui.Visible then
+            for _,c in pairs(corners) do 
+                TweenService:Create(c, TweenInfo.new(0.7, Enum.EasingStyle.Sine), {BackgroundTransparency = 0.6}):Play() 
+            end
+            task.wait(0.7)
+            for _,c in pairs(corners) do 
+                TweenService:Create(c, TweenInfo.new(0.7, Enum.EasingStyle.Sine), {BackgroundTransparency = 0.9}):Play() 
+            end
+            task.wait(0.7)
+        else task.wait(0.5) end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        if charaGui.Visible then
+            local size = math.random(3,12)
+            local dot = Instance.new("Frame", charaGui)
+            dot.Size = UDim2.new(0,size,0,size); dot.Position = UDim2.new(math.random(),0,1,0)
+            dot.BackgroundColor3 = Color3.fromRGB(255,0,0); dot.BorderSizePixel = 0; dot.ZIndex = 10
+            Instance.new("UICorner", dot).CornerRadius = UDim.new(1,0)
+            local tween = TweenService:Create(dot,TweenInfo.new(math.random(3,6)),{
+                Position = UDim2.new(dot.Position.X.Scale + (math.random(-10,10)/100), 0, math.random(0.4,0.7), 0),
+                BackgroundTransparency = 1
+            })
+            tween:Play(); tween.Completed:Connect(function() dot:Destroy() end)
+            task.wait(0.06)
+        else task.wait(0.5) end
+    end
+end)
+
+-- [THÊM VÀO] HÀM TẠO SÓNG ĐỎ (WAVE EFFECT)
+local function createWaveEffect()
+    local char = lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    local part = Instance.new("Part")
+    part.Anchored = true; part.CanCollide = false; part.CastShadow = false
+    part.Transparency = 1; part.Size = Vector3.new(1, 1, 1); part.Parent = workspace
+    
+    local mesh = Instance.new("SpecialMesh")
+    mesh.MeshId = "rbxassetid://7108020644"; mesh.MeshType = Enum.MeshType.FileMesh; mesh.Parent = part
+    part.Material = Enum.Material.Neon; part.Color = Color3.fromRGB(255, 0, 0)
+
+    local currentStuds, maxStuds, speed = 0.1, 12, 25
+    local connection
+    connection = RunService.RenderStepped:Connect(function(dt)
+        if not _G.DeterActive or not hrp or not hrp.Parent or not part.Parent then
+            if connection then connection:Disconnect() end
+            part:Destroy(); return
+        end
+        part.Position = hrp.Position - Vector3.new(0, 2.8, 0)
+        currentStuds = currentStuds + (speed * dt)
+        local scaleFactor = currentStuds * 0.05 
+        mesh.Scale = Vector3.new(scaleFactor, 0.05, scaleFactor)
+        part.Transparency = 0.1 + (0.9 * (currentStuds / maxStuds))
+        if currentStuds >= maxStuds then connection:Disconnect(); part:Destroy() end
+    end)
+end
+
+task.spawn(function()
+    while true do
+        if _G.DeterActive then createWaveEffect() end
+        task.wait(0.5)
+    end
+end)
+
 local function playTalkSound(isEvil)
     local s = Instance.new("Sound", CoreGui)
     s.SoundId = isEvil and "rbxassetid://929615155" or "rbxassetid://929615246"
@@ -28,13 +134,10 @@ local saveSound = Instance.new("Sound", gui); saveSound.SoundId = "rbxassetid://
 local deathSound = Instance.new("Sound", gui); deathSound.SoundId = "rbxassetid://135209094013497"
 local spawnSound = Instance.new("Sound", gui); spawnSound.SoundId = "rbxassetid://87561416369452"
 
--- 4. Cấu trúc UI Box Chat
 local main = Instance.new("Frame", gui)
 main.Size = UDim2.new(0, 600, 0, 160)
 main.Position = UDim2.new(0.5, -300, 0.75, -80)
-main.BackgroundColor3 = Color3.new(0,0,0)
-main.BorderColor3 = Color3.new(1,1,1)
-main.BorderSizePixel = 4
+main.BackgroundColor3 = Color3.new(0,0,0); main.BorderColor3 = Color3.new(1,1,1); main.BorderSizePixel = 4
 main.Active, main.Draggable = true, true
 
 local closeBtn = Instance.new("TextButton", main)
@@ -65,7 +168,6 @@ statusText.Size = UDim2.new(0, 420, 0, 100); statusText.Position = UDim2.new(0, 
 statusText.TextColor3 = Color3.new(1,1,1); statusText.Font = Enum.Font.Arcade; statusText.TextSize = 22
 statusText.TextXAlignment = Enum.TextXAlignment.Left; statusText.TextYAlignment = Enum.TextYAlignment.Top; statusText.TextWrapped = true
 
--- 5. Cấu hình Hitbox & Hiệu ứng Rung
 local EspActive = false
 _G.DeterActive = false
 local currentTalkId = 0
@@ -75,14 +177,13 @@ local shakeConnection = nil
 
 local function stopShake()
     if shakeConnection then shakeConnection:Disconnect(); shakeConnection = nil end
-    statusText.Position = UDim2.new(0, 155, 0.5, -65) -- Reset vị trí
+    statusText.Position = UDim2.new(0, 155, 0.5, -65)
 end
 
 local function startShake()
     stopShake()
     shakeConnection = RunService.RenderStepped:Connect(function()
-        local ox = math.random(-2, 2)
-        local oy = math.random(-2, 2)
+        local ox = math.random(-2, 2); local oy = math.random(-2, 2)
         statusText.Position = UDim2.new(0, 155 + ox, 0.5, -65 + oy)
     end)
 end
@@ -107,19 +208,15 @@ local deterBtn = CreateUTButton("DETERMINATION", UDim2.new(0, 360, 0.7, 0), func
 local function typeWrite(txt, evilMode, showButtons)
     currentTalkId = currentTalkId + 1
     local myId = currentTalkId
-    
-    stopShake() -- Dừng mọi hiệu ứng rung trước đó
+    stopShake()
     statusText.Text = ""
     statusText.TextColor3 = evilMode and Color3.new(1, 0, 0) or Color3.new(1, 1, 1)
     portrait.Image = evilMode and "rbxthumb://type=Asset&id=90345918387121&w=420&h=420" or "rbxthumb://type=Asset&id=102826797353578&w=420&h=420"
-    
-    if evilMode then startShake() end -- Chỉ rung khi là chữ đỏ (evil mode)
-
+    if evilMode then startShake() end
     for i = 1, #txt do
         if myId ~= currentTalkId then return end
         statusText.Text = string.sub(txt, 1, i)
-        playTalkSound(evilMode)
-        task.wait(evilMode and 0.05 or 0.03)
+        playTalkSound(evilMode); task.wait(evilMode and 0.05 or 0.03)
     end
     if showButtons and myId == currentTalkId then espBtn.Visible, deterBtn.Visible = true, true end
 end
@@ -132,12 +229,13 @@ end)
 
 deterBtn.MouseButton1Click:Connect(function()
     _G.DeterActive = not _G.DeterActive
+    if _G.DeterActive then flashRed(); task.wait(0.05) end
+    charaGui.Visible = _G.DeterActive
     deterBtn.TextColor3 = _G.DeterActive and Color3.new(1, 1, 0) or Color3.new(1, 1, 1)
     if _G.DeterActive then typeWrite("* Determination surges through your veins.", true)
     else typeWrite("* The determination fades away.", false) end
 end)
 
--- 6. ESP 
 local function add_esp(p)
     if p == lp then return end
     local function apply(char)
@@ -162,12 +260,10 @@ local function add_esp(p)
 end
 for _, v in pairs(Players:GetPlayers()) do add_esp(v) end; Players.PlayerAdded:Connect(add_esp)
 
--- 7. Visual & Kill Aura
 local function CreateAuraPart(color, range)
     local p = Instance.new("Part", workspace); p.Anchored, p.CanCollide = true, false; p.Transparency = 1
     p.Shape = "Cylinder"; p.Material = "ForceField"; p.Color = color
-    p.Size = Vector3.new(0.08, range * 2, range * 2)
-    return p
+    p.Size = Vector3.new(0.08, range * 2, range * 2); return p
 end
 
 local InnerCircle = CreateAuraPart(Color3.fromRGB(255, 0, 0), innerRange)
@@ -183,14 +279,10 @@ RunService.RenderStepped:Connect(function()
         if isFirstLoad or hasPlayedDeathSound then saveSound:Play(); isFirstLoad, hasPlayedDeathSound = false, false end
         local posBase = root.CFrame * CFrame.Angles(0, 0, math.rad(90)) + Vector3.new(0, -2.85, 0)
         InnerCircle.CFrame, OuterRing.CFrame = posBase, posBase
-        
-        -- CHỈNH SỬA TẠI ĐÂY: Di chuyển Soul từ trên đầu xuống trước ngực
         SoulBase.CFrame = root.CFrame * CFrame.new(0, 0.5 + math.sin(tick()*3)*0.3, -0.8) * CFrame.Angles(0, math.rad(180), 0)
-        
         InnerCircle.Transparency = _G.DeterActive and 0.4 or 1
         OuterRing.Transparency = _G.DeterActive and 0.8 or 1
         SoulBase.Transparency = _G.DeterActive and 0 or 1
-
         if _G.DeterActive then
             if not hasPlayedSpawnSound then spawnSound:Play(); hasPlayedSpawnSound = true end
             local tool = char:FindFirstChildOfClass("Tool")
@@ -216,7 +308,6 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- 8. Khởi chạy
 task.spawn(function()
     typeWrite("* Greetings, fallen human. This script was made by 美好的回忆一个异常安静的空间.", false)
     task.wait(1.5)
