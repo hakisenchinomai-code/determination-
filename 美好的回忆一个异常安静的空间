@@ -14,6 +14,12 @@ gui.Name = "Undertale_Rework_UI"
 gui.ResetOnSpawn = false
 gui.IgnoreGuiInset = true 
 
+-- ÂM NHẠC QUYẾT TÂM
+local deterMusic = Instance.new("Sound", gui)
+deterMusic.SoundId = "rbxassetid://140591680644571"
+deterMusic.Volume = 2
+deterMusic.Looped = true
+
 local function flashRed()
     local flash = Instance.new("Frame", gui)
     flash.Size = UDim2.new(1, 0, 1, 0)
@@ -52,9 +58,20 @@ local corners = {
     createCorner(UDim2.new(1,0,1,0), Vector2.new(1,1), -135),
 }
 
+-- [CHỈNH SỬA] NHÁY 4 GÓC THEO NHẠC
+RunService.RenderStepped:Connect(function()
+    if _G.DeterActive and deterMusic.IsPlaying then
+        local loudness = deterMusic.PlaybackLoudness
+        local intensity = math.clamp(loudness / 550, 0, 0.6) 
+        for _, c in pairs(corners) do
+            c.BackgroundTransparency = 0.8 - intensity -- Nháy ở 4 góc
+        end
+    end
+end)
+
 task.spawn(function()
     while true do
-        if charaGui.Visible then
+        if charaGui.Visible and not deterMusic.IsPlaying then -- Chỉ chạy tween nếu nhạc không phát
             for _,c in pairs(corners) do 
                 TweenService:Create(c, TweenInfo.new(0.7, Enum.EasingStyle.Sine), {BackgroundTransparency = 0.6}):Play() 
             end
@@ -63,7 +80,7 @@ task.spawn(function()
                 TweenService:Create(c, TweenInfo.new(0.7, Enum.EasingStyle.Sine), {BackgroundTransparency = 0.9}):Play() 
             end
             task.wait(0.7)
-        else task.wait(0.5) end
+        else task.wait(0.1) end
     end
 end)
 
@@ -85,20 +102,16 @@ task.spawn(function()
     end
 end)
 
--- [THÊM VÀO] HÀM TẠO SÓNG ĐỎ (WAVE EFFECT)
 local function createWaveEffect()
     local char = lp.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
-
     local part = Instance.new("Part")
     part.Anchored = true; part.CanCollide = false; part.CastShadow = false
     part.Transparency = 1; part.Size = Vector3.new(1, 1, 1); part.Parent = workspace
-    
     local mesh = Instance.new("SpecialMesh")
     mesh.MeshId = "rbxassetid://7108020644"; mesh.MeshType = Enum.MeshType.FileMesh; mesh.Parent = part
     part.Material = Enum.Material.Neon; part.Color = Color3.fromRGB(255, 0, 0)
-
     local currentStuds, maxStuds, speed = 0.1, 12, 25
     local connection
     connection = RunService.RenderStepped:Connect(function(dt)
@@ -194,7 +207,9 @@ local function CreateUTButton(name, pos, checkVarFunc)
     btn.Text = "      " .. name; btn.TextColor3 = Color3.new(1, 1, 1); btn.Font = Enum.Font.Arcade; btn.TextSize = 20
     btn.TextXAlignment = Enum.TextXAlignment.Left; btn.Visible = false
     local soulIcon = Instance.new("ImageLabel", btn)
-    soulIcon.Size = UDim2.new(0, 22, 0, 22); soulIcon.Position = UDim2.new(0, 5, 0.5, -11)
+    soulIcon.Size = UDim2.new(0, 22, 0, 22)
+    -- [CHỈNH SỬA] Đưa Soul icon lại gần chữ (Position 35 thay vì 5)
+    soulIcon.Position = UDim2.new(0, 35, 0.5, -11) 
     soulIcon.BackgroundTransparency = 1; soulIcon.Image = "rbxthumb://type=Asset&id=127269861215079&w=420&h=420"
     soulIcon.ImageTransparency = 1
     btn.MouseEnter:Connect(function() btnClickSound:Play(); soulIcon.ImageTransparency = 0; btn.TextColor3 = Color3.new(1, 1, 0) end)
@@ -229,7 +244,12 @@ end)
 
 deterBtn.MouseButton1Click:Connect(function()
     _G.DeterActive = not _G.DeterActive
-    if _G.DeterActive then flashRed(); task.wait(0.05) end
+    if _G.DeterActive then 
+        flashRed()
+        deterMusic:Play()
+    else
+        deterMusic:Stop()
+    end
     charaGui.Visible = _G.DeterActive
     deterBtn.TextColor3 = _G.DeterActive and Color3.new(1, 1, 0) or Color3.new(1, 1, 1)
     if _G.DeterActive then typeWrite("* Determination surges through your veins.", true)
